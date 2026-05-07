@@ -108,6 +108,15 @@ public class GamePanel extends JPanel {
         int rowDiff = clickedRow - selectedRow;
         int colDiff = clickedCol - selectedCol;
 
+        // I added this check after testing because clicking the same cell
+        // was triggering game over. the direction was zero so the snowball
+        // looped forever and ended up out of bounds.
+        if (rowDiff == 0 && colDiff == 0) {
+            selectedPiece = null;
+            repaint();
+            return;
+        }
+
         int moveRow = 0;
         int moveCol = 0;
 
@@ -150,7 +159,13 @@ public class GamePanel extends JPanel {
             currentCol = nextCol;
         }
 
-        board.movePiece(row, col, currentRow, currentCol);
+        // I added this check after testing because snowballs were
+        // disappearing when they slid into another piece. movePiece was
+        // being called even when the snowball hadnt moved, which made it
+        // overwrite the blocking piece.
+        if (currentRow != row || currentCol != col) {
+            board.movePiece(row, col, currentRow, currentCol);
+        }
     }
 
     void drawSelected(Graphics g) {
@@ -165,7 +180,7 @@ public class GamePanel extends JPanel {
     }
 
     void drawGameOver(Graphics g) {
-        // If the player loses, "Game Over!" in big red letters.
+        // If the player loses, I just draw "Game Over!" in big red letters.
         if (gameOver) {
             g.setColor(Color.RED);
             g.setFont(new Font("Arial", Font.BOLD, 40));
