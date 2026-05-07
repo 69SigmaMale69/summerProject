@@ -1,18 +1,19 @@
-
-
-
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.*;
 
 public class GamePanel extends JPanel {
-
 
     // how big each grid cell is in pixels
     int tileSize = 100;
 
-
     GameBoard board;
 
+    // tracks which piece is selected
+    Piece selectedPiece = null;
+    int selectedRow = 0;
+    int selectedCol = 0;
+    boolean gameOver = false;
 
     // takes the board in so the panel knows what to draw
     GamePanel(GameBoard board) {
@@ -23,18 +24,37 @@ public class GamePanel extends JPanel {
         int panelHeight = board.rows * tileSize;
         setPreferredSize(new Dimension(panelWidth, panelHeight));
         setBackground(Color.WHITE);
+
+        // This listens for mouse clicks so we know when the player
+        // wants to select or move a snowball.
+        addMouseListener(new MouseAdapter() {
+            public void mouseClicked(MouseEvent e) {
+
+                if (gameOver) return;
+
+                // I divided the click location by the tile size to
+                // figure out which square on the grid was actually clicked.
+                int col = e.getX() / tileSize;
+                int row = e.getY() / tileSize;
+
+                if (selectedPiece == null) {
+                    selectPiece(row, col);
+                } else {
+                    movePiece(row, col);
+                }
+            }
+        });
     }
 
-
     // java calls this whenever the screen needs redrawing
-// I split it into two methods to keep things clean
+    // I split it into two methods to keep things clean
     public void paintComponent(Graphics g) {
         super.paintComponent(g);
         drawGrid(g);
         drawPieces(g);
+        drawSelected(g);
+        drawGameOver(g);
     }
-
-
 
     // draws the grid lines so the player can see the cells
     void drawGrid(Graphics g) {
@@ -53,7 +73,6 @@ public class GamePanel extends JPanel {
         }
     }
 
-
     // loops through every cell and draws the piece if there is one
     void drawPieces(Graphics g) {
         for (int row = 0; row < board.rows; row++) {
@@ -68,6 +87,89 @@ public class GamePanel extends JPanel {
                     g.drawImage(piece.getImage(), x, y, tileSize, tileSize, this);
                 }
             }
+        }
+    }
+
+    // first click select a snowball at the clicked cell
+    void selectPiece(int row, int col) {
+        Piece piece = board.getPiece(row, col);
+
+        // I check if the piece is actually a Snowball here.
+        if (piece instanceof Snowball) {
+            selectedPiece = piece;
+            selectedRow = row;
+            selectedCol = col;
+            repaint();
+        }
+    }
+
+    // second click work out direction and move the snowball
+    void movePiece(int clickedRow, int clickedCol) {
+        int rowDiff = clickedRow - selectedRow;
+        int colDiff = clickedCol - selectedCol;
+
+        int moveRow = 0;
+        int moveCol = 0;
+
+        // I compare the distances to see which way the player wants to move.
+        if (Math.abs(rowDiff) >= Math.abs(colDiff)) {
+            moveRow = (rowDiff > 0) ? 1 : -1;
+        } else {
+            moveCol = (colDiff > 0) ? 1 : -1;
+        }
+
+        slideSnowball(selectedRow, selectedCol, moveRow, moveCol);
+
+        selectedPiece = null;
+        repaint();
+    }
+
+    // slide the snowball one step at a time until something stops it
+    void slideSnowball(int row, int col, int moveRow, int moveCol) {
+        int currentRow = row;
+        int currentCol = col;
+
+        while (true) {
+            int nextRow = currentRow + moveRow;
+            int nextCol = currentCol + moveCol;
+
+            // If the snowball goes off the edge, the player loses.
+            if (!board.inBounds(nextRow, nextCol)) {
+                board.removePiece(currentRow, currentCol);
+                gameOver = true;
+                repaint();
+                return;
+            }
+
+            // If the next square isn't empty, the snowball stops.
+            if (!board.isEmpty(nextRow, nextCol)) {
+                break;
+            }
+
+            currentRow = nextRow;
+            currentCol = nextCol;
+        }
+
+        board.movePiece(row, col, currentRow, currentCol);
+    }
+
+    void drawSelected(Graphics g) {
+        // I draw a blue box around the selected piece so the player
+        // knows exactly what they are about to move.
+        if (selectedPiece != null) {
+            g.setColor(Color.BLUE);
+            int x = selectedCol * tileSize;
+            int y = selectedRow * tileSize;
+            g.drawRect(x, y, tileSize, tileSize);
+        }
+    }
+
+    void drawGameOver(Graphics g) {
+        // If the player loses, "Game Over!" in big red letters.
+        if (gameOver) {
+            g.setColor(Color.RED);
+            g.setFont(new Font("Arial", Font.BOLD, 40));
+            g.drawString("Game Over!", 130, 200);
         }
     }
 }
