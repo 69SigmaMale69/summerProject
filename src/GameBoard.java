@@ -3,7 +3,7 @@
 public class GameBoard {
 
 //2d array chosen becasue it is just a flat grid basically
-    // created just to store the pieces 
+    // created just to store the pieces
     // the size of the grid
     int rows = 4;
     int cols = 5;
