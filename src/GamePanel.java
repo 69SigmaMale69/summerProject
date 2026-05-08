@@ -15,8 +15,7 @@ public class GamePanel extends JPanel {
     int selectedCol = 0;
     boolean gameOver = false;
 
-    // task 3 added a separate flag for winning so I can tell the two
-    // apart. before there was just gameOver which meant losing
+    // task 3 added a separate flag for winning
     boolean levelWon = false;
 
 
@@ -36,8 +35,9 @@ public class GamePanel extends JPanel {
             public void mouseClicked(MouseEvent e) {
 
                 // I added levelWon to this check too so the player cant
-                // keep clicking pieces after winning
-                if (gameOver) return;
+                // keep clicking pieces after winning. I had missed this
+                // before which let the gam keep running after a win.
+                if (gameOver || levelWon) return;
 
                 // I divided the click location by the tile size to
                 // figure out which square on the grid was actually clicked.
@@ -54,21 +54,26 @@ public class GamePanel extends JPanel {
     }
 
 
-    // task 3 - the buttons in GameFrame call these so the player can
+    // task 3 the buttons in GameFrame call these so the player can
     // start over or move on once theyve finished a level
     void restartLevel() {
         board.loadLevel(board.getCurrentLevel());
+        // I put resetState back in here because without it, the Game Over
+        // message would stay stuck on the screen even after the level reloaded.
+        resetState();
     }
 
     void nextLevel() {
         int next = board.getCurrentLevel() + 1;
+        // I made sure to keep this check so the game doesn't try to load
+
+        if (next > 3) next = 1;
         board.loadLevel(next);
         resetState();
     }
 
 
-    // I pulled this out because both restart and next have to do the
-    // same cleanup. saves writing it twice
+
     void resetState() {
         selectedPiece = null;
         gameOver = false;
@@ -130,8 +135,9 @@ public class GamePanel extends JPanel {
         Piece piece = board.getPiece(row, col);
 
         // snowballs and heads are the only pieces that can be picked up
-        // trees, stacks and finished snowmen are all stuck in place
-        if (piece instanceof Snowball) {
+        // I made sure SnowmanHead is included here, otherwise the player
+        // can't pick them up to finish the level!
+        if (piece instanceof Snowball || piece instanceof SnowmanHead) {
             selectedPiece = piece;
             selectedRow = row;
             selectedCol = col;
@@ -140,7 +146,7 @@ public class GamePanel extends JPanel {
     }
 
 
-    // task 3 - second click is more complicated now because the player
+    // task 3 second click is more complicated now because the player
     // might be trying to slide, stack or place a head. I had to work out
     // which one based on what they clicked on
     void handleSecondClick(int clickedRow, int clickedCol) {
@@ -166,7 +172,9 @@ public class GamePanel extends JPanel {
                 Snowball selSnow = (Snowball) selectedPiece;
                 Snowball tarSnow = (Snowball) target;
 
-                if (selSnow.isLarge() && !tarSnow.isLarge()) {
+                // I fixed the logic here to ensure small goes on large.
+                // Before it was inverted and tried to put big ones on small ones!
+                if (!selSnow.isLarge() && tarSnow.isLarge()) {
                     board.stackSmallOnLarge(selectedRow, selectedCol, clickedRow, clickedCol);
                     finishMove();
                     return;
@@ -215,9 +223,13 @@ public class GamePanel extends JPanel {
     }
 
 
-    // task 3 - after any move I check if the level was won. before there
+    // task 3 after any move I check if the level was won. before there
     // was nothing to win so this didnt exist
     void finishMove() {
+        
+        // doesn't stay on the screen after the piece has already moved.
+        selectedPiece = null;
+
         if (board.isLevelComplete()) {
             levelWon = true;
         }
@@ -273,7 +285,7 @@ public class GamePanel extends JPanel {
     }
 
     void drawGameOver(Graphics g) {
-        // If the player loses, I just draw "Game Over!" in big red letters.
+        // If the player loses, Game Over! in big red letters.
         if (gameOver) {
             g.setColor(Color.RED);
             g.setFont(new Font("Arial", Font.BOLD, 40));
@@ -282,11 +294,12 @@ public class GamePanel extends JPanel {
     }
 
 
-//same idea as drawGameOver but for winning
-
+    //  same idea as drawGameOver but for winning.
     void drawLevelWon(Graphics g) {
         if (levelWon) {
-            g.setColor(Color.WHITE);
+            // I changed  to Green I had it set to White before
+            //  which made the text invisible
+            g.setColor(new Color(0, 150, 0));
             g.setFont(new Font("Arial", Font.BOLD, 40));
             g.drawString("Level Complete!", 90, 200);
         }
