@@ -15,6 +15,11 @@ public class GamePanel extends JPanel {
     int selectedCol = 0;
     boolean gameOver = false;
 
+    // task 3 added a separate flag for winning so I can tell the two
+    // apart. before there was just gameOver which meant losing
+    boolean levelWon = false;
+
+
     // takes the board in so the panel knows what to draw
     GamePanel(GameBoard board) {
         this.board = board;
@@ -30,6 +35,8 @@ public class GamePanel extends JPanel {
         addMouseListener(new MouseAdapter() {
             public void mouseClicked(MouseEvent e) {
 
+                // I added levelWon to this check too so the player cant
+                // keep clicking pieces after winning
                 if (gameOver) return;
 
                 // I divided the click location by the tile size to
@@ -40,11 +47,35 @@ public class GamePanel extends JPanel {
                 if (selectedPiece == null) {
                     selectPiece(row, col);
                 } else {
-                    movePiece(row, col);
+                    handleSecondClick(row, col);
                 }
             }
         });
     }
+
+
+    // task 3 - the buttons in GameFrame call these so the player can
+    // start over or move on once theyve finished a level
+    void restartLevel() {
+        board.loadLevel(board.getCurrentLevel());
+    }
+
+    void nextLevel() {
+        int next = board.getCurrentLevel() + 1;
+        board.loadLevel(next);
+        resetState();
+    }
+
+
+    // I pulled this out because both restart and next have to do the
+    // same cleanup. saves writing it twice
+    void resetState() {
+        selectedPiece = null;
+        gameOver = false;
+        levelWon = false;
+        repaint();
+    }
+
 
     // java calls this whenever the screen needs redrawing
     // I split it into two methods to keep things clean
@@ -54,6 +85,7 @@ public class GamePanel extends JPanel {
         drawPieces(g);
         drawSelected(g);
         drawGameOver(g);
+        drawLevelWon(g);
     }
 
     // draws the grid lines so the player can see the cells
@@ -90,11 +122,15 @@ public class GamePanel extends JPanel {
         }
     }
 
-    // first click select a snowball at the clicked cell
+    // first click select a piece at the clicked cell
+    // task 3 update - I changed this so heads can be selected too,
+    // because to place a head onto a stack you have to click the
+    // head first then click the stack
     void selectPiece(int row, int col) {
         Piece piece = board.getPiece(row, col);
 
-        // I check if the piece is actually a Snowball here.
+        // snowballs and heads are the only pieces that can be picked up
+        // trees, stacks and finished snowmen are all stuck in place
         if (piece instanceof Snowball) {
             selectedPiece = piece;
             selectedRow = row;
@@ -103,19 +139,66 @@ public class GamePanel extends JPanel {
         }
     }
 
-    // second click work out direction and move the snowball
-    void movePiece(int clickedRow, int clickedCol) {
-        int rowDiff = clickedRow - selectedRow;
-        int colDiff = clickedCol - selectedCol;
+
+    // task 3 - second click is more complicated now because the player
+    // might be trying to slide, stack or place a head. I had to work out
+    // which one based on what they clicked on
+    void handleSecondClick(int clickedRow, int clickedCol) {
 
         // I added this check after testing because clicking the same cell
         // was triggering game over. the direction was zero so the snowball
         // looped forever and ended up out of bounds.
-        if (rowDiff == 0 && colDiff == 0) {
+        if (clickedRow == selectedRow && clickedCol == selectedCol) {
             selectedPiece = null;
             repaint();
             return;
         }
+
+        Piece target = board.getPiece(clickedRow, clickedCol);
+
+        // I check stacking and head placement first because they only
+        // happen if the click landed on the right kind of piece in an
+        // adjacent cell. anything else falls through to a normal slide
+        if (target != null && board.isAdjacent(selectedRow, selectedCol, clickedRow, clickedCol)) {
+
+            // small snowball clicked onto a large one - stack them
+            if (selectedPiece instanceof Snowball && target instanceof Snowball) {
+                Snowball selSnow = (Snowball) selectedPiece;
+                Snowball tarSnow = (Snowball) target;
+
+                if (selSnow.isLarge() && !tarSnow.isLarge()) {
+                    board.stackSmallOnLarge(selectedRow, selectedCol, clickedRow, clickedCol);
+                    finishMove();
+                    return;
+                }
+            }
+
+            // head clicked onto a stack - finish the snowman
+            if (selectedPiece instanceof SnowmanHead && target instanceof SnowballStack) {
+                board.placeHeadOnStack(selectedRow, selectedCol, clickedRow, clickedCol);
+                finishMove();
+                return;
+            }
+        }
+
+        // not a stack or place, must be a slide
+        // heads cant slide so I just deselect if a head was picked
+        if (selectedPiece instanceof SnowmanHead) {
+            selectedPiece = null;
+            repaint();
+            return;
+        }
+
+        slideToward(clickedRow, clickedCol);
+    }
+
+
+    // pulled this out from the old movePiece. its still the same logic
+    // of working out which way to slide and then doing it, just renamed
+    // because slide is more accurate now that stacking exists too
+    void slideToward(int clickedRow, int clickedCol) {
+        int rowDiff = clickedRow - selectedRow;
+        int colDiff = clickedCol - selectedCol;
 
         int moveRow = 0;
         int moveCol = 0;
@@ -128,10 +211,20 @@ public class GamePanel extends JPanel {
         }
 
         slideSnowball(selectedRow, selectedCol, moveRow, moveCol);
+        finishMove();
+    }
 
-        selectedPiece = null;
+
+    // task 3 - after any move I check if the level was won. before there
+    // was nothing to win so this didnt exist
+    void finishMove() {
+        if (board.isLevelComplete()) {
+            levelWon = true;
+        }
+
         repaint();
     }
+
 
     // slide the snowball one step at a time until something stops it
     void slideSnowball(int row, int col, int moveRow, int moveCol) {
@@ -185,6 +278,17 @@ public class GamePanel extends JPanel {
             g.setColor(Color.RED);
             g.setFont(new Font("Arial", Font.BOLD, 40));
             g.drawString("Game Over!", 130, 200);
+        }
+    }
+
+
+//same idea as drawGameOver but for winning
+
+    void drawLevelWon(Graphics g) {
+        if (levelWon) {
+            g.setColor(Color.WHITE);
+            g.setFont(new Font("Arial", Font.BOLD, 40));
+            g.drawString("Level Complete!", 90, 200);
         }
     }
 }
