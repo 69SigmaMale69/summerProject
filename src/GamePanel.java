@@ -65,7 +65,7 @@ public class GamePanel extends JPanel {
 
     void nextLevel() {
         int next = board.getCurrentLevel() + 1;
-        // I made sure to keep this check so the game doesn't try to load
+        // I made sure to keep this check so the game doesnt try to load
 
         if (next > 3) next = 1;
         board.loadLevel(next);
@@ -173,7 +173,7 @@ public class GamePanel extends JPanel {
                 Snowball tarSnow = (Snowball) target;
 
                 // I fixed the logic here to ensure small goes on large.
-                // Before it was inverted and tried to put big ones on small ones!
+                // Before it was inverted and tried to put big ones on small ones
                 if (!selSnow.isLarge() && tarSnow.isLarge()) {
                     board.stackSmallOnLarge(selectedRow, selectedCol, clickedRow, clickedCol);
                     finishMove();
@@ -226,7 +226,7 @@ public class GamePanel extends JPanel {
     // task 3 after any move I check if the level was won. before there
     // was nothing to win so this didnt exist
     void finishMove() {
-        
+
         // doesn't stay on the screen after the piece has already moved.
         selectedPiece = null;
 

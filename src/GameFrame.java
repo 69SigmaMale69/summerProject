@@ -30,7 +30,7 @@ public class GameFrame extends JFrame {
 
         // I switched to BorderLayout because I now have two things to
         // place. buttons go at the top, game goes in the middle
-        // I added the panel before sizing because pack() needs to know
+        // I added the panel before sizing because pack needs to know
         // what is inside the window before it can work out the size
         setLayout(new BorderLayout());
         add(buttons, BorderLayout.NORTH);
