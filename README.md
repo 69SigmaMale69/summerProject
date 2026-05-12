@@ -1,12 +1,5 @@
  SnowProblems
 
-## Rename files
-
-```
-mv src/SnowBall.java src/Snowball.java
-mv src/SnowBallStack.java src/SnowballStack.java
-mv src/snowmanHead.java src/SnowmanHead.java
-mv src/Pieces.java src/Piece.java
 ```
 
 ## Install Java 25 on Ubuntu
